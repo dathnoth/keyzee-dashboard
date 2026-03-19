@@ -846,17 +846,28 @@ function hideLogin() {
 async function submitLogin() {
   const pw = document.getElementById('login-password').value.trim();
   if (!pw) return;
-  // Test the password against the worker
-  const resp = await fetch(`${WORKER_URL}/api/sales?from=2026-01-01&to=2026-01-01`, {
-    headers: { 'X-Dashboard-Token': pw }
-  });
-  if (resp.status === 401) {
-    document.getElementById('login-error').textContent = 'Incorrect password.';
-    return;
+  const btn = document.querySelector('.login-btn');
+  const errEl = document.getElementById('login-error');
+  btn.textContent = 'Checking...';
+  btn.disabled = true;
+  errEl.textContent = '';
+  try {
+    const resp = await fetch(`${WORKER_URL}/api/sales?from=2026-01-01&to=2026-01-01`, {
+      headers: { 'X-Dashboard-Token': pw }
+    });
+    if (resp.status === 401) {
+      errEl.textContent = 'Incorrect password.';
+      return;
+    }
+    localStorage.setItem(LS_KEY, pw);
+    hideLogin();
+    fetchData();
+  } catch (e) {
+    errEl.textContent = 'Connection error. Try again.';
+  } finally {
+    btn.textContent = 'Access Dashboard';
+    btn.disabled = false;
   }
-  localStorage.setItem(LS_KEY, pw);
-  hideLogin();
-  fetchData();
 }
 
 function fmt(n) {
