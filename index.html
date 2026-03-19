@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Keyzee Sales Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -16,6 +17,12 @@
     --accent: #f0c040;
     --accent2: #4ade80;
     --accent-dim: rgba(240,192,64,0.12);
+    --red: #f87171;
+    --red-dim: rgba(248,113,113,0.12);
+    --amber: #fbbf24;
+    --amber-dim: rgba(251,191,36,0.12);
+    --green: #4ade80;
+    --green-dim: rgba(74,222,128,0.12);
     --text: #f0ede8;
     --muted: #6b6b78;
     --mono: 'DM Mono', monospace;
@@ -140,6 +147,17 @@
   .btn:hover { opacity: 0.88; }
   .btn:active { transform: scale(0.98); }
 
+  /* Section headings */
+  .section-heading {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    margin-top: 32px;
+  }
+
   /* Grids */
   .kpi-grid {
     display: grid;
@@ -151,6 +169,13 @@
   .kpi-grid-3 {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .kpi-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 16px;
     margin-bottom: 16px;
   }
@@ -280,6 +305,215 @@
     letter-spacing: -0.01em;
     color: var(--text);
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Chart card */
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .chart-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .chart-card.loaded::before { opacity: 1; }
+
+  .chart-wrap {
+    height: 220px;
+    position: relative;
+  }
+
+  /* Fulfilment bucket card */
+  .bucket-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .bucket-row {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .bucket-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+
+  .bucket-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .bucket-stat {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .bucket-bar-bg {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .bucket-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.6s ease;
+  }
+
+  .bucket-green .bucket-stat { color: var(--green); }
+  .bucket-green .bucket-bar-fill { background: var(--green); }
+  .bucket-amber .bucket-stat { color: var(--amber); }
+  .bucket-amber .bucket-bar-fill { background: var(--amber); }
+  .bucket-red .bucket-stat { color: var(--red); }
+  .bucket-red .bucket-bar-fill { background: var(--red); }
+
+  /* Refunds card */
+  .refund-pair {
+    display: flex;
+    gap: 24px;
+    align-items: flex-end;
+  }
+
+  .refund-item { display: flex; flex-direction: column; gap: 4px; }
+
+  .refund-sub {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .refund-val {
+    font-family: var(--mono);
+    font-size: 36px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--red);
+    line-height: 1;
+  }
+
+  .refund-val.loading {
+    background: linear-gradient(90deg, var(--surface2) 25%, var(--border) 50%, var(--surface2) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 6px;
+    width: 80px;
+    height: 36px;
+    color: transparent;
+  }
+
+  /* Table cards */
+  .table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .table-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .table-card.loaded::before { opacity: 1; }
+
+  .rank-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 4px;
+  }
+
+  .rank-table th {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-align: left;
+    padding: 0 0 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .rank-table th:last-child { text-align: right; }
+
+  .rank-table td {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(42,42,50,0.5);
+    vertical-align: middle;
+  }
+
+  .rank-table td:last-child {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .rank-table tr:last-child td { border-bottom: none; }
+
+  .rank-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    min-width: 20px;
+    display: inline-block;
+  }
+
+  .rank-name {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+  }
+
+  .rank-rev {
+    color: var(--accent);
+  }
+
+  .rank-count {
+    color: var(--muted);
+    font-size: 11px;
+  }
+
+  .table-loading {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    padding: 24px 0;
+    animation: pulse 1.4s ease-in-out infinite;
   }
 
   /* Error */
@@ -420,6 +654,72 @@
     </div>
   </div>
 
+  <!-- Monthly Sales Chart -->
+  <div class="chart-card" id="card-chart">
+    <div class="kpi-label">Monthly Sales Revenue</div>
+    <div class="chart-wrap">
+      <canvas id="chart-monthly"></canvas>
+    </div>
+  </div>
+
+  <!-- Row 4: Fulfilment Performance & Refunds -->
+  <div class="kpi-grid-2">
+    <div class="kpi-card" id="card-buckets">
+      <div class="kpi-label">Completed Fulfilment Performance</div>
+      <div class="bucket-rows" id="val-buckets">
+        <div class="bucket-row bucket-green">
+          <div class="bucket-header">
+            <span class="bucket-label">Within 3 days</span>
+            <span class="bucket-stat" id="bucket-3">—</span>
+          </div>
+          <div class="bucket-bar-bg"><div class="bucket-bar-fill" id="bar-3" style="width:0%"></div></div>
+        </div>
+        <div class="bucket-row bucket-amber">
+          <div class="bucket-header">
+            <span class="bucket-label">Within 10 days</span>
+            <span class="bucket-stat" id="bucket-10">—</span>
+          </div>
+          <div class="bucket-bar-bg"><div class="bucket-bar-fill" id="bar-10" style="width:0%"></div></div>
+        </div>
+        <div class="bucket-row bucket-red">
+          <div class="bucket-header">
+            <span class="bucket-label">Over 10 days</span>
+            <span class="bucket-stat" id="bucket-over">—</span>
+          </div>
+          <div class="bucket-bar-bg"><div class="bucket-bar-fill" id="bar-over" style="width:0%"></div></div>
+        </div>
+      </div>
+      <div class="kpi-meta" id="meta-buckets" style="margin-top:16px"></div>
+    </div>
+
+    <div class="kpi-card" id="card-refunds">
+      <div class="kpi-label">Customer Refunds</div>
+      <div class="refund-pair">
+        <div class="refund-item">
+          <span class="refund-sub">Count</span>
+          <span class="refund-val loading" id="refund-count">—</span>
+        </div>
+        <div class="refund-item">
+          <span class="refund-sub">Total Value</span>
+          <span class="refund-val loading" id="refund-value">—</span>
+        </div>
+      </div>
+      <div class="kpi-meta" id="meta-refunds" style="margin-top:14px"></div>
+    </div>
+  </div>
+
+  <!-- Row 5: Top Products & Top Vendors -->
+  <div class="kpi-grid-2">
+    <div class="table-card" id="card-products">
+      <div class="kpi-label">Top 10 Products</div>
+      <div id="val-products"><div class="table-loading">Loading...</div></div>
+    </div>
+    <div class="table-card" id="card-vendors">
+      <div class="kpi-label">Top 10 Buildings / OCs</div>
+      <div id="val-vendors"><div class="table-loading">Loading...</div></div>
+    </div>
+  </div>
+
   <span class="last-updated" id="last-updated"></span>
 
 </div>
@@ -428,6 +728,8 @@
 
 <script>
 const WORKER_URL = 'https://keyzee-odoo-proxy.danieltnthompson.workers.dev';
+
+let monthlyChart = null;
 
 function fmt(n) {
   if (n >= 1000000) return '$' + (n/1000000).toFixed(2) + 'M';
@@ -467,26 +769,128 @@ function renderChange(pct) {
 }
 
 function setLoading() {
-  // Single-value cards
   ['val-revenue','val-aov','val-received','val-approved','val-completed','val-fulfil'].forEach(id => {
     const el = document.getElementById(id);
     el.textContent = '';
     el.classList.add('loading');
   });
-  // Clear metas
-  ['meta-revenue','meta-aov','meta-received','meta-approved','meta-completed','meta-fulfil','orders-count'].forEach(id => {
+  ['meta-revenue','meta-aov','meta-received','meta-approved','meta-completed','meta-fulfil','orders-count','meta-buckets','meta-refunds'].forEach(id => {
     document.getElementById(id).textContent = '';
   });
-  // Breakdown cards
   document.getElementById('val-items').classList.add('loading');
   document.getElementById('val-bytype').classList.add('loading');
   ['items-keys','items-fobs','items-remotes','type-agent','type-owner','type-tenant'].forEach(id => {
     document.getElementById(id).textContent = '—';
   });
-  // Remove loaded state
-  ['card-revenue','card-aov','card-received','card-approved','card-completed','card-fulfil','card-items','card-bytype'].forEach(id => {
+  ['bucket-3','bucket-10','bucket-over'].forEach(id => { document.getElementById(id).textContent = '—'; });
+  ['bar-3','bar-10','bar-over'].forEach(id => { document.getElementById(id).style.width = '0%'; });
+  ['refund-count','refund-value'].forEach(id => {
+    const el = document.getElementById(id);
+    el.textContent = '';
+    el.classList.add('loading');
+  });
+  document.getElementById('val-products').innerHTML = '<div class="table-loading">Loading...</div>';
+  document.getElementById('val-vendors').innerHTML = '<div class="table-loading">Loading...</div>';
+  ['card-revenue','card-aov','card-received','card-approved','card-completed','card-fulfil',
+   'card-items','card-bytype','card-chart','card-buckets','card-refunds','card-products','card-vendors'].forEach(id => {
     document.getElementById(id).classList.remove('loaded');
   });
+}
+
+function renderMonthlyChart(monthlySales) {
+  const ctx = document.getElementById('chart-monthly').getContext('2d');
+  const labels = (monthlySales || []).map(m => {
+    const [yr, mo] = m.month.split('-');
+    return new Date(+yr, +mo - 1, 1).toLocaleDateString('en-AU', { month: 'short', year: '2-digit' });
+  });
+  const values = (monthlySales || []).map(m => m.revenue);
+
+  if (monthlyChart) monthlyChart.destroy();
+
+  monthlyChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: 'rgba(240,192,64,0.25)',
+        borderColor: 'rgba(240,192,64,0.8)',
+        borderWidth: 1,
+        borderRadius: 3,
+        hoverBackgroundColor: 'rgba(240,192,64,0.45)',
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ' ' + fmt(ctx.parsed.y)
+          },
+          backgroundColor: '#1c1c21',
+          borderColor: '#2a2a32',
+          borderWidth: 1,
+          titleColor: '#6b6b78',
+          bodyColor: '#f0ede8',
+          bodyFont: { family: 'DM Mono', size: 12 },
+          titleFont: { family: 'DM Mono', size: 10 },
+          padding: 10,
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(42,42,50,0.5)', drawBorder: false },
+          ticks: { color: '#6b6b78', font: { family: 'DM Mono', size: 10 } },
+          border: { display: false }
+        },
+        y: {
+          grid: { color: 'rgba(42,42,50,0.5)', drawBorder: false },
+          ticks: {
+            color: '#6b6b78',
+            font: { family: 'DM Mono', size: 10 },
+            callback: v => fmt(v)
+          },
+          border: { display: false }
+        }
+      }
+    }
+  });
+}
+
+function renderProductsTable(topProducts) {
+  if (!topProducts || topProducts.length === 0) {
+    document.getElementById('val-products').innerHTML = '<div class="table-loading">No data</div>';
+    return;
+  }
+  const rows = topProducts.map((p, i) => `
+    <tr>
+      <td><span class="rank-num">${i+1}.</span> <span class="rank-name" title="${p.name}">${p.name}</span></td>
+      <td><span class="rank-rev">${fmt(p.revenue)}</span> <span class="rank-count">(${p.count})</span></td>
+    </tr>`).join('');
+  document.getElementById('val-products').innerHTML = `
+    <table class="rank-table">
+      <thead><tr><th>Product</th><th>Revenue (orders)</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function renderVendorsTable(topVendors) {
+  if (!topVendors || topVendors.length === 0) {
+    document.getElementById('val-vendors').innerHTML = '<div class="table-loading">No data</div>';
+    return;
+  }
+  const rows = topVendors.map((v, i) => `
+    <tr>
+      <td><span class="rank-num">${i+1}.</span> <span class="rank-name" title="${v.name}">${v.name}</span></td>
+      <td><span class="rank-rev">${fmt(v.revenue)}</span> <span class="rank-count">(${v.orders})</span></td>
+    </tr>`).join('');
+  document.getElementById('val-vendors').innerHTML = `
+    <table class="rank-table">
+      <thead><tr><th>Customer</th><th>Revenue (orders)</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
 }
 
 async function fetchData() {
@@ -506,7 +910,9 @@ async function fetchData() {
             ordersReceived, prevOrdersReceived,
             ordersApproved, prevOrdersApproved,
             ordersCompleted, prevOrdersCompleted,
-            avgFulfillmentDays, itemsSent, ordersByType } = data;
+            avgFulfillmentDays, fulfilment,
+            itemsSent, ordersByType,
+            monthlySales, topProducts, topVendors, refunds } = data;
 
     const aov = count > 0 ? revenue / count : 0;
     const prevAov = prevCount > 0 ? prevRevenue / prevCount : 0;
@@ -526,12 +932,13 @@ async function fetchData() {
     document.getElementById('meta-approved').innerHTML = renderChange(pctChange(ordersApproved, prevOrdersApproved));
     document.getElementById('meta-completed').innerHTML = renderChange(pctChange(ordersCompleted, prevOrdersCompleted));
 
-    // Row 3 — Fulfilment
-    if (avgFulfillmentDays !== null && avgFulfillmentDays !== undefined) {
+    // Row 3 — Fulfilment avg
+    const avgDays = fulfilment ? fulfilment.avgDays : avgFulfillmentDays;
+    if (avgDays !== null && avgDays !== undefined) {
       const el = document.getElementById('val-fulfil');
       el.classList.remove('loading');
-      el.innerHTML = `${Math.abs(avgFulfillmentDays).toFixed(1)}<span class="kpi-suffix">days</span>`;
-      document.getElementById('meta-fulfil').textContent = avgFulfillmentDays < 0
+      el.innerHTML = `${Math.abs(avgDays).toFixed(1)}<span class="kpi-suffix">days</span>`;
+      document.getElementById('meta-fulfil').textContent = avgDays < 0
         ? 'ahead of schedule on avg'
         : 'after scheduled date on avg';
     } else {
@@ -551,8 +958,47 @@ async function fetchData() {
     document.getElementById('type-tenant').textContent = (ordersByType.tenant || 0).toLocaleString();
     document.getElementById('val-bytype').classList.remove('loading');
 
+    // Monthly Chart
+    renderMonthlyChart(monthlySales || []);
+    document.getElementById('card-chart').classList.add('loaded');
+
+    // Fulfilment buckets
+    if (fulfilment && fulfilment.total > 0) {
+      document.getElementById('bucket-3').textContent = `${fulfilment.within3} (${fulfilment.within3Pct}%)`;
+      document.getElementById('bucket-10').textContent = `${fulfilment.within10} (${fulfilment.within10Pct}%)`;
+      document.getElementById('bucket-over').textContent = `${fulfilment.over10} (${fulfilment.over10Pct}%)`;
+      document.getElementById('bar-3').style.width = fulfilment.within3Pct + '%';
+      document.getElementById('bar-10').style.width = fulfilment.within10Pct + '%';
+      document.getElementById('bar-over').style.width = fulfilment.over10Pct + '%';
+      document.getElementById('meta-buckets').textContent = `${fulfilment.total} completed orders`;
+    } else {
+      ['bucket-3','bucket-10','bucket-over'].forEach(id => { document.getElementById(id).textContent = '—'; });
+      document.getElementById('meta-buckets').textContent = 'no delivery data';
+    }
+
+    // Refunds
+    if (refunds) {
+      const rcEl = document.getElementById('refund-count');
+      rcEl.classList.remove('loading');
+      rcEl.textContent = refunds.count;
+      const rvEl = document.getElementById('refund-value');
+      rvEl.classList.remove('loading');
+      rvEl.textContent = fmt(refunds.value || 0);
+    } else {
+      ['refund-count','refund-value'].forEach(id => {
+        const el = document.getElementById(id);
+        el.classList.remove('loading');
+        el.textContent = '—';
+      });
+    }
+
+    // Tables
+    renderProductsTable(topProducts || []);
+    renderVendorsTable(topVendors || []);
+
     // Mark all loaded
-    ['card-revenue','card-aov','card-received','card-approved','card-completed','card-fulfil','card-items','card-bytype'].forEach(id => {
+    ['card-revenue','card-aov','card-received','card-approved','card-completed','card-fulfil',
+     'card-items','card-bytype','card-buckets','card-refunds','card-products','card-vendors'].forEach(id => {
       document.getElementById(id).classList.add('loaded');
     });
 
@@ -562,6 +1008,11 @@ async function fetchData() {
     errEl.textContent = 'Error: ' + e.message;
     errEl.style.display = 'block';
     ['val-revenue','val-aov','val-received','val-approved','val-completed','val-fulfil'].forEach(id => {
+      const el = document.getElementById(id);
+      el.classList.remove('loading');
+      el.textContent = '—';
+    });
+    ['refund-count','refund-value'].forEach(id => {
       const el = document.getElementById(id);
       el.classList.remove('loading');
       el.textContent = '—';
