@@ -577,13 +577,19 @@
 
   <div id="dash-error" class="error-msg"></div>
 
-  <!-- Row 1: Revenue & AOV -->
-  <div class="kpi-grid">
+  <!-- Row 1: Revenue, Profit & AOV -->
+  <div class="kpi-grid-3">
     <div class="kpi-card" id="card-revenue">
       <div class="kpi-label">Revenue (excl. tax)</div>
       <div class="kpi-value loading" id="val-revenue">—</div>
       <div class="kpi-meta" id="meta-revenue"></div>
       <div class="kpi-sub" id="orders-count"></div>
+    </div>
+    <div class="kpi-card" id="card-profit">
+      <div class="kpi-label">Gross Profit</div>
+      <div class="kpi-value loading" id="val-profit">—</div>
+      <div class="kpi-meta" id="meta-profit"></div>
+      <div class="kpi-sub" id="profit-margin"></div>
     </div>
     <div class="kpi-card" id="card-aov">
       <div class="kpi-label">Avg. Order Value</div>
@@ -769,12 +775,12 @@ function renderChange(pct) {
 }
 
 function setLoading() {
-  ['val-revenue','val-aov','val-received','val-approved','val-completed','val-fulfil'].forEach(id => {
+  ['val-revenue','val-profit','val-aov','val-received','val-approved','val-completed','val-fulfil'].forEach(id => {
     const el = document.getElementById(id);
     el.textContent = '';
     el.classList.add('loading');
   });
-  ['meta-revenue','meta-aov','meta-received','meta-approved','meta-completed','meta-fulfil','orders-count','meta-buckets','meta-refunds'].forEach(id => {
+  ['meta-revenue','meta-profit','meta-aov','meta-received','meta-approved','meta-completed','meta-fulfil','orders-count','profit-margin','meta-buckets','meta-refunds'].forEach(id => {
     document.getElementById(id).textContent = '';
   });
   document.getElementById('val-items').classList.add('loading');
@@ -907,6 +913,7 @@ async function fetchData() {
     if (data.error) throw new Error(data.error);
 
     const { revenue, count, prevRevenue, prevCount,
+            profit, prevProfit,
             ordersReceived, prevOrdersReceived,
             ordersApproved, prevOrdersApproved,
             ordersCompleted, prevOrdersCompleted,
@@ -916,13 +923,17 @@ async function fetchData() {
 
     const aov = count > 0 ? revenue / count : 0;
     const prevAov = prevCount > 0 ? prevRevenue / prevCount : 0;
+    const marginPct = revenue > 0 ? (profit / revenue * 100).toFixed(1) : null;
 
     // Row 1
     setVal('val-revenue', fmt(revenue));
+    setVal('val-profit', fmt(profit || 0));
     setVal('val-aov', fmt(aov));
     document.getElementById('meta-revenue').innerHTML = renderChange(pctChange(revenue, prevRevenue));
+    document.getElementById('meta-profit').innerHTML = renderChange(pctChange(profit, prevProfit));
     document.getElementById('meta-aov').innerHTML = renderChange(pctChange(aov, prevAov));
     document.getElementById('orders-count').textContent = `${count} order${count !== 1 ? 's' : ''}`;
+    document.getElementById('profit-margin').textContent = marginPct !== null ? `${marginPct}% margin` : '';
 
     // Row 2
     setVal('val-received', ordersReceived);
@@ -997,7 +1008,7 @@ async function fetchData() {
     renderVendorsTable(topVendors || []);
 
     // Mark all loaded
-    ['card-revenue','card-aov','card-received','card-approved','card-completed','card-fulfil',
+    ['card-revenue','card-profit','card-aov','card-received','card-approved','card-completed','card-fulfil',
      'card-items','card-bytype','card-buckets','card-refunds','card-products','card-vendors'].forEach(id => {
       document.getElementById(id).classList.add('loaded');
     });
@@ -1007,7 +1018,7 @@ async function fetchData() {
   } catch (e) {
     errEl.textContent = 'Error: ' + e.message;
     errEl.style.display = 'block';
-    ['val-revenue','val-aov','val-received','val-approved','val-completed','val-fulfil'].forEach(id => {
+    ['val-revenue','val-profit','val-aov','val-received','val-approved','val-completed','val-fulfil'].forEach(id => {
       const el = document.getElementById(id);
       el.classList.remove('loading');
       el.textContent = '—';
